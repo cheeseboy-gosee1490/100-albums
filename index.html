@@ -17,7 +17,7 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:16p
 .eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:11px;color:var(--muted);font-weight:700}
 h1{font-size:38px;line-height:1;margin:7px 0 0;letter-spacing:-.04em}.counter{font-size:13px;color:var(--muted);text-align:right;padding-top:6px}
 .card{background:linear-gradient(145deg,#1b1b21,#111115);border:1px solid var(--line);border-radius:24px;padding:26px;margin-bottom:16px;min-height:360px;display:flex;align-items:center;gap:25px;overflow:hidden;position:relative}
-.cover{width:210px;height:210px;flex:0 0 210px;border-radius:12px;background:linear-gradient(135deg,#292930,#111116);border:1px solid #33333b;box-shadow:0 18px 45px #0008;display:none;object-fit:cover}
+.cover{width:210px;height:210px;flex:0 0 210px;border-radius:12px;background-size:cover;background-position:center;background-repeat:no-repeat;border:1px solid #33333b;box-shadow:0 18px 45px #0008;display:none}
 .cover.show{display:block}.card-copy{min-width:0}.status{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.13em;margin-bottom:16px}
 .artist{font-size:27px;font-weight:650;letter-spacing:-.025em}.album{font-family:Georgia,serif;font-size:40px;line-height:1.05;margin-top:7px;letter-spacing:-.035em}.meta{color:var(--muted);font-size:14px;margin-top:18px;line-height:1.5}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -44,7 +44,7 @@ section{margin-top:28px}.section-title{font-size:12px;text-transform:uppercase;l
 <header><div><div class="eyebrow">Daily listening project</div><h1>100 Albums</h1></div><div class="counter" id="counter">100<br>remaining</div></header>
 
 <div class="card" id="recordCard" aria-live="polite">
-<img class="cover" id="cover" alt="">
+<div class="cover" id="cover" aria-hidden="true"></div>
 <div class="card-copy">
 <div class="status" id="status">Ready to spin</div>
 <div class="artist" id="artist">Pick your first record.</div>
@@ -127,21 +127,22 @@ function render(){
 }
 
 async function renderCover(term){
- const img=$("cover"), token=++artToken;
- if(!term){img.classList.remove("show");img.removeAttribute("src");return}
- img.classList.remove("show");
- img.removeAttribute("src");
+ const box=$("cover"), token=++artToken;
+ box.classList.remove("show");
+ box.style.backgroundImage="none";
+ if(!term)return;
  try{
   const r=await fetch("https://itunes.apple.com/search?term="+encodeURIComponent(term)+"&entity=album&media=music&limit=10");
   const data=await r.json();
   if(token!==artToken)return;
   const item=data.results.find(x=>x.collectionName&&x.artistName&&term.toLowerCase().includes(x.artistName.toLowerCase().split(" ")[0]))||data.results[0];
-  if(item&&item.artworkUrl100){
-   const url=item.artworkUrl100.replace("100x100","600x600");
-   img.onload=()=>{if(token===artToken)img.classList.add("show")};
-   img.src=url;
-  }else img.classList.remove("show");
- }catch(e){if(token===artToken)img.classList.remove("show")}
+  if(!item||!item.artworkUrl100)return;
+  const url=item.artworkUrl100.replace("100x100","600x600");
+  const preload=new Image();
+  preload.onload=()=>{if(token===artToken){box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";box.classList.add("show")}};
+  preload.onerror=()=>{if(token===artToken){box.style.backgroundImage="none";box.classList.remove("show")}};
+  preload.src=url;
+ }catch(e){if(token===artToken){box.style.backgroundImage="none";box.classList.remove("show")}}
 }
 
 function renderHistory(){
