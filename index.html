@@ -128,11 +128,10 @@ function render(){
 
 function renderCover(artist,album){
  const box=$("cover"), token=++artToken;
- box.classList.remove("show");
- box.style.backgroundImage="none";
+ box.classList.remove("show"); box.style.backgroundImage="none";
  if(!artist||!album)return;
 
- const cacheKey="album-art-cache-v4";
+ const cacheKey="album-art-cache-v5";
  let cache={};
  try{cache=JSON.parse(localStorage.getItem(cacheKey)||"{}")}catch(e){}
  const key=artist+" — "+album;
@@ -144,38 +143,60 @@ function renderCover(artist,album){
    if(token===artToken){
     box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";
     box.classList.add("show");
+    cache[key]=url;
+    try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}
    }
   };
+  img.onerror=()=>{};
   img.src=url;
  }
 
  if(cache[key]){show(cache[key]);return}
 
- const mbQuery="artist:"+encodeURIComponent('"'+artist+'"')+" AND releasegroup:"+encodeURIComponent('"'+album+'"');
- const mbUrl="https://musicbrainz.org/ws/2/release-group/?query="+mbQuery+"&fmt=json&limit=5";
+ const query=encodeURIComponent('artist:"'+artist+'" AND releasegroup:"'+album+'"');
+ const mbUrl="https://musicbrainz.org/ws/2/release-group/?query="+query+"&fmt=json&limit=5";
 
- fetch(mbUrl,{headers:{"Accept":"application/json"}})
+ fetch(mbUrl,{headers:{"Accept":"application/json","User-Agent":"100Albums/1.0 (GitHub Pages)"}})
   .then(r=>r.ok?r.json():null)
   .then(data=>{
-   if(token!==artToken||!data)return;
-   const groups=(data&&data["release-groups"])||[];
-   const wantedArtist=artist.toLowerCase(), wantedAlbum=album.toLowerCase();
+   if(token!==artToken||!data)throw new Error("mb");
+   const groups=(data["release-groups"]||[]);
+   const wa=artist.toLowerCase(), wb=album.toLowerCase();
    const exact=groups.find(g=>
-    (g.title||"").toLowerCase()===wantedAlbum &&
-    (g["artist-credit"]||[]).some(c=>((c.artist&&c.artist.name)||"").toLowerCase()===wantedArtist)
+    (g.title||"").toLowerCase()===wb &&
+    (g["artist-credit"]||[]).some(c=>((c.artist&&c.artist.name)||"").toLowerCase()===wa)
    );
    const group=exact||groups[0];
-   if(!group||!group.id)return;
-   return fetch("https://coverartarchive.org/release-group/"+group.id+"/front-500",{cache:"force-cache"})
-    .then(r=>r.ok?r.url:null);
+   if(group&&group.id){
+    show("https://coverartarchive.org/release-group/"+group.id+"/front-500");
+    // Give CAA a moment; Wikipedia remains the fallback below if CAA has no front image.
+    setTimeout(()=>{if(token===artToken&&!box.classList.contains("show"))fallbackWikipedia()},1800);
+   }else fallbackWikipedia();
   })
-  .then(url=>{
-   if(!url||token!==artToken)return;
-   cache[key]=url;
-   try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}
-   show(url);
-  })
-  .catch(()=>{});
+  .catch(()=>fallbackWikipedia());
+
+ function fallbackWikipedia(){
+  if(token!==artToken)return;
+  const q=encodeURIComponent(artist+" "+album);
+  const api="https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+q+"&gsrnamespace=0&gsrlimit=8&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*";
+  fetch(api,{cache:"force-cache"})
+   .then(r=>r.ok?r.json():null)
+   .then(data=>{
+    if(token!==artToken||!data)return;
+    const pages=Object.values((data.query&&data.query.pages)||{});
+    const wa=artist.toLowerCase(), wb=album.toLowerCase();
+    const ranked=pages.map(p=>{
+     const t=(p.title||"").toLowerCase();
+     let score=0;
+     if(t.includes(wa))score+=5;
+     if(t.includes(wb))score+=5;
+     if(p.thumbnail&&p.thumbnail.source)score+=2;
+     return {p,score};
+    }).sort((a,b)=>b.score-a.score);
+    const item=ranked.find(x=>x.p.thumbnail&&x.p.thumbnail.source);
+    if(item)show(item.p.thumbnail.source);
+   }).catch(()=>{});
+ }
 }
 function renderHistory(){
  const h=$("history");h.innerHTML="";
@@ -197,6 +218,9 @@ function spin(){
   $("status").textContent="Finished!";$("artist").textContent="You did all 100.";$("album").textContent="🎉";$("meta").textContent="Reset to start a new run.";return;
  }
  $("complete").classList.remove("show");
+ $("cover").classList.remove("show");
+ $("cover").style.backgroundImage="none";
+ artToken++;
  $("recordCard").classList.add("spin-anim");
  $("spin").disabled=true;
  let ticks=0;
