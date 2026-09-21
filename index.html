@@ -126,24 +126,41 @@ function render(){
  renderHistory();
 }
 
-async function renderCover(term){
+function renderCover(term){
  const box=$("cover"), token=++artToken;
  box.classList.remove("show");
  box.style.backgroundImage="none";
  if(!term)return;
- try{
-  const r=await fetch("https://api.deezer.com/search/album?q="+encodeURIComponent(term)+"&limit=10");
-  const data=await r.json();
-  if(token!==artToken)return;
+ const callback="albumArtCallback_"+token;
+ const script=document.createElement("script");
+ let timer;
+ const cleanup=()=>{
+  clearTimeout(timer);
+  try{delete window[callback]}catch(e){window[callback]=undefined}
+  script.remove();
+ };
+ window[callback]=(data)=>{
+  if(token!==artToken){cleanup();return}
   const wanted=term.toLowerCase();
-  const item=(data.data||[]).find(x=>x.title&&x.artist&&wanted.includes(x.artist.name.toLowerCase().split(" ")[0]))||(data.data||[])[0];
-  if(!item||!item.cover_xl)return;
-  const url=item.cover_xl;
+  const results=(data&&data.results)||[];
+  const item=results.find(x=>x.collectionName&&x.artistName&&wanted.includes(x.artistName.toLowerCase().split(" ")[0]))||results[0];
+  if(!item||!item.artworkUrl100){cleanup();return}
+  const url=item.artworkUrl100.replace("100x100","600x600");
   const preload=new Image();
-  preload.onload=()=>{if(token===artToken){box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";box.classList.add("show")}};
-  preload.onerror=()=>{if(token===artToken){box.style.backgroundImage="none";box.classList.remove("show")}};
+  preload.onload=()=>{
+   if(token===artToken){
+    box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";
+    box.classList.add("show");
+   }
+   cleanup();
+  };
+  preload.onerror=()=>{cleanup()};
   preload.src=url;
- }catch(e){if(token===artToken){box.style.backgroundImage="none";box.classList.remove("show")}}
+ };
+ script.src="https://itunes.apple.com/search?term="+encodeURIComponent(term)+"&entity=album&media=music&limit=10&callback="+callback;
+ script.onerror=cleanup;
+ document.body.appendChild(script);
+ timer=setTimeout(cleanup,8000);
 }
 
 function renderHistory(){
