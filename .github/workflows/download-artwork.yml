@@ -41,57 +41,55 @@ jobs:
 
           for n, (artist, album) in enumerate(albums, 1):
               path = f"artwork/{n:03d}.jpg"
-              if os.path.exists(path) and os.path.getsize(path) > 5000:
-                  print(f"{n:03d} already exists: {artist} — {album}")
-                  continue
-
               url = None
 
+              # Prefer MusicBrainz/Cover Art Archive for canonical album sleeves.
               try:
-                  q = urllib.parse.quote(artist + " " + album)
+                  q = urllib.parse.quote(f'artist:"{artist}" AND releasegroup:"{album}"')
                   data = get_json(
-                      "https://itunes.apple.com/search?term=" + q +
-                      "&entity=album&attribute=albumTerm&limit=25&country=GB"
+                      "https://musicbrainz.org/ws/2/release-group/?query=" + q +
+                      "&fmt=json&limit=5",
+                      {"Accept":"application/json","User-Agent":"100AlbumsArtwork/1.0"}
                   )
                   wa, wb = artist.strip().lower(), album.strip().lower()
-                  for x in data.get("results", []):
+                  group = None
+                  for g in data.get("release-groups", []):
                       if (
-                          x.get("wrapperType") == "collection"
-                          and str(x.get("collectionName","")).strip().lower() == wb
-                          and str(x.get("artistName","")).strip().lower() == wa
-                          and x.get("artworkUrl100")
+                          str(g.get("title","")).strip().lower() == wb
+                          and any(
+                              str((x.get("artist") or {}).get("name","")).strip().lower() == wa
+                              for x in g.get("artist-credit", [])
+                          )
                       ):
-                          url = x["artworkUrl100"].replace("100x100", "600x600")
+                          group = g
                           break
+                  if group and group.get("id"):
+                      url = "https://coverartarchive.org/release-group/" + group["id"] + "/front-500"
               except Exception as e:
-                  print("  iTunes error:", e)
+                  print("  MusicBrainz error:", e)
 
+              # Exact iTunes match only as a fallback.
               if not url:
                   try:
-                      q = urllib.parse.quote(f'artist:"{artist}" AND releasegroup:"{album}"')
+                      q = urllib.parse.quote(artist + " " + album)
                       data = get_json(
-                          "https://musicbrainz.org/ws/2/release-group/?query=" + q +
-                          "&fmt=json&limit=5",
-                          {"Accept":"application/json","User-Agent":"100AlbumsArtwork/1.0"}
+                          "https://itunes.apple.com/search?term=" + q +
+                          "&entity=album&attribute=albumTerm&limit=25&country=GB"
                       )
                       wa, wb = artist.strip().lower(), album.strip().lower()
-                      group = None
-                      for g in data.get("release-groups", []):
+                      for x in data.get("results", []):
                           if (
-                              str(g.get("title","")).strip().lower() == wb
-                              and any(
-                                  str((x.get("artist") or {}).get("name","")).strip().lower() == wa
-                                  for x in g.get("artist-credit", [])
-                              )
+                              x.get("wrapperType") == "collection"
+                              and str(x.get("collectionName","")).strip().lower() == wb
+                              and str(x.get("artistName","")).strip().lower() == wa
+                              and x.get("artworkUrl100")
                           ):
-                              group = g
+                              url = x["artworkUrl100"].replace("100x100", "600x600")
                               break
-                      if group and group.get("id"):
-                          url = "https://coverartarchive.org/release-group/" + group["id"] + "/front-500"
                   except Exception as e:
-                      print("  MusicBrainz error:", e)
+                      print("  iTunes error:", e)
 
-              if url:
+          if url:
                   try:
                       download(url, path)
                       print(f"{n:03d} OK: {artist} — {album}")
