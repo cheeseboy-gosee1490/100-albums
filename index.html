@@ -131,26 +131,41 @@ function renderCover(artist,album){
  box.classList.remove("show"); box.style.backgroundImage="none";
  if(!artist||!album)return;
 
- const names=[
-  album+" ("+artist+" album).jpg",
-  album+".jpg",
-  artist+" - "+album+".jpg"
- ];
- let n=0;
- function next(){
-  if(token!==artToken||n>=names.length)return;
+ const cacheKey="album-art-cache-v2";
+ let cache={};
+ try{cache=JSON.parse(localStorage.getItem(cacheKey)||"{}")}catch(e){}
+ const key=artist+" — "+album;
+ if(cache[key]){
+  show(cache[key]);
+  return;
+ }
+
+ function show(url){
+  if(!url||token!==artToken)return;
   const img=new Image();
-  img.referrerPolicy="no-referrer";
   img.onload=()=>{
    if(token===artToken){
-    box.style.backgroundImage="url('"+img.src.replace(/'/g,"%27")+"')";
+    box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";
     box.classList.add("show");
    }
   };
-  img.onerror=()=>{n++;next()};
-  img.src="https://en.wikipedia.org/wiki/Special:Redirect/file/"+encodeURIComponent(names[n++]);
+  img.src=url;
  }
- next();
+
+ // Wikipedia's REST summary endpoint is considerably faster than a search query.
+ const title=encodeURIComponent(album+" ("+artist+" album)");
+ fetch("https://en.wikipedia.org/api/rest_v1/page/summary/"+title,{cache:"force-cache"})
+  .then(r=>r.ok?r.json():null)
+  .then(data=>{
+   if(!data)return;
+   const url=(data.originalimage&&data.originalimage.source)||
+            (data.thumbnail&&data.thumbnail.source);
+   if(!url)return;
+   cache[key]=url;
+   try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}
+   show(url);
+  })
+  .catch(()=>{});
 }
 function renderHistory(){
  const h=$("history");h.innerHTML="";
