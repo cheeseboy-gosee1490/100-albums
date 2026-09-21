@@ -95,16 +95,50 @@ jobs:
                   except Exception as e:
                       print("  iTunes error:", e)
 
+              # Try the selected source. If it fails (e.g. Cover Art Archive has no front image),
+              # fall back to an exact iTunes match, then Wikipedia.
+              candidates = []
               if url:
-                  try:
-                      download(url, path)
-                      print(f"{n:03d} OK: {artist} — {album}")
-                  except Exception as e:
-                      print(f"{n:03d} FAILED IMAGE: {artist} — {album}: {e}")
+                  candidates.append(url)
+
+              try:
+                  q = urllib.parse.quote(artist + " " + album)
+                  data = get_json(
+                      "https://itunes.apple.com/search?term=" + q +
+                      "&entity=album&attribute=albumTerm&limit=25&country=GB"
+                  )
+                  wa, wb = artist.strip().lower(), album.strip().lower()
+                  for x in data.get("results", []):
+                      if (
+                          x.get("wrapperType") == "collection"
+                          and str(x.get("collectionName","")).strip().lower() == wb
+                          and str(x.get("artistName","")).strip().lower() == wa
+                          and x.get("artworkUrl100")
+                      ):
+                          itunes_url = x["artworkUrl100"].replace("100x100", "600x600")
+                          if itunes_url not in candidates:
+                              candidates.append(itunes_url)
+                          break
+              except Exception as e:
+                  print("  iTunes fallback error:", e)
+
+              if candidates:
+                  downloaded = False
+                  for candidate in candidates:
+                      try:
+                          download(candidate, path)
+                          print(f"{n:03d} OK: {artist} — {album}")
+                          downloaded = True
+                          break
+                      except Exception as e:
+                          print(f"  image source failed: {e}")
+
+                  if not downloaded:
                       try:
                           os.remove(path)
                       except FileNotFoundError:
                           pass
+                      print(f"{n:03d} MISSING: {artist} — {album}")
                       missing.append((n, artist, album))
               else:
                   print(f"{n:03d} MISSING: {artist} — {album}")
