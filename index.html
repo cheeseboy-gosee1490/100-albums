@@ -152,7 +152,7 @@ function render(){
  $("again").disabled=state.current===null;
  const hasCurrent=state.current!==null;
  if(!hasCurrent)clearArtwork();
- const [a,b]=hasCurrent?albums[state.current]:["Pick your first record.","One album a day."];
+ const [a,b]=hasCurrent?albums[state.current]:["Pick your first record.","Pick an album from the list."];
  $("artist").textContent=a;$("album").textContent=b;
  $("status").textContent=hasCurrent?"Selected album":"Ready to spin";
  $("meta").textContent=hasCurrent?"A random pick from your remaining "+state.remaining.length+" albums.":"No repeats. Your progress is saved on this device.";
