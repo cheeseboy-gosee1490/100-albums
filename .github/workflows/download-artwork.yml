@@ -1,0 +1,127 @@
+name: Download Album Artwork
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  artwork:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download artwork
+        run: |
+          python3 <<'PY'
+          import json, os, re, time, urllib.parse, urllib.request
+
+          html = open("index.html", encoding="utf-8").read()
+          block = html.split("const albums=[", 1)[1].split("];", 1)[0]
+          albums = re.findall(r'\["((?:\\.|[^"])*)","((?:\\.|[^"])*)"\]', block)
+
+          os.makedirs("artwork", exist_ok=True)
+
+          def get_json(url, headers=None):
+              req = urllib.request.Request(url, headers=headers or {})
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  return json.loads(r.read().decode("utf-8"))
+
+          def download(url, path):
+              req = urllib.request.Request(url, headers={"User-Agent":"100AlbumsArtwork/1.0"})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  data = r.read()
+              if len(data) < 5000:
+                  raise ValueError("image response too small")
+              open(path, "wb").write(data)
+
+          missing = []
+
+          for n, (artist, album) in enumerate(albums, 1):
+              path = f"artwork/{n:03d}.jpg"
+              if os.path.exists(path) and os.path.getsize(path) > 5000:
+                  print(f"{n:03d} already exists: {artist} — {album}")
+                  continue
+
+              url = None
+
+              try:
+                  q = urllib.parse.quote(artist + " " + album)
+                  data = get_json(
+                      "https://itunes.apple.com/search?term=" + q +
+                      "&entity=album&attribute=albumTerm&limit=25&country=GB"
+                  )
+                  wa, wb = artist.strip().lower(), album.strip().lower()
+                  for x in data.get("results", []):
+                      if (
+                          x.get("wrapperType") == "collection"
+                          and str(x.get("collectionName","")).strip().lower() == wb
+                          and str(x.get("artistName","")).strip().lower() == wa
+                          and x.get("artworkUrl100")
+                      ):
+                          url = x["artworkUrl100"].replace("100x100", "600x600")
+                          break
+              except Exception as e:
+                  print("  iTunes error:", e)
+
+              if not url:
+                  try:
+                      q = urllib.parse.quote(f'artist:"{artist}" AND releasegroup:"{album}"')
+                      data = get_json(
+                          "https://musicbrainz.org/ws/2/release-group/?query=" + q +
+                          "&fmt=json&limit=5",
+                          {"Accept":"application/json","User-Agent":"100AlbumsArtwork/1.0"}
+                      )
+                      wa, wb = artist.strip().lower(), album.strip().lower()
+                      group = None
+                      for g in data.get("release-groups", []):
+                          if (
+                              str(g.get("title","")).strip().lower() == wb
+                              and any(
+                                  str((x.get("artist") or {}).get("name","")).strip().lower() == wa
+                                  for x in g.get("artist-credit", [])
+                              )
+                          ):
+                              group = g
+                              break
+                      if group and group.get("id"):
+                          url = "https://coverartarchive.org/release-group/" + group["id"] + "/front-500"
+                  except Exception as e:
+                      print("  MusicBrainz error:", e)
+
+              if url:
+                  try:
+                      download(url, path)
+                      print(f"{n:03d} OK: {artist} — {album}")
+                  except Exception as e:
+                      print(f"{n:03d} FAILED IMAGE: {artist} — {album}: {e}")
+                      try:
+                          os.remove(path)
+                      except FileNotFoundError:
+                          pass
+                      missing.append((n, artist, album))
+              else:
+                  print(f"{n:03d} MISSING: {artist} — {album}")
+                  missing.append((n, artist, album))
+
+              time.sleep(0.35)
+
+          print("\nMissing artwork:")
+          for n, artist, album in missing:
+              print(f"{n:03d} — {artist} — {album}")
+          print(f"\nDownloaded {len(albums)-len(missing)}/{len(albums)} covers.")
+          PY
+
+      - name: Commit artwork
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add artwork/
+          if git diff --cached --quiet; then
+            echo "No new artwork to commit."
+          else
+            git commit -m "Add local album artwork"
+            git push
+          fi
