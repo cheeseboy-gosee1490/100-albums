@@ -128,35 +128,29 @@ function render(){
 
 function renderCover(artist,album){
  const box=$("cover"), token=++artToken;
- box.classList.remove("show");
- box.style.backgroundImage="none";
+ box.classList.remove("show"); box.style.backgroundImage="none";
  if(!artist||!album)return;
 
- // Use a plain image element rather than fetch/XHR. Mobile Safari can display
- // cross-origin images directly even when JavaScript requests are restricted.
- const img=new Image();
- img.alt="";
- img.referrerPolicy="no-referrer";
- img.onload=()=>{
-  if(token!==artToken)return;
-  box.style.backgroundImage="url('"+img.src.replace(/'/g,"%27")+"')";
-  box.classList.add("show");
- };
- img.onerror=()=>{
-  // Try the Wikimedia Special:Redirect/file route as a second direct-image source.
-  const file=encodeURIComponent(album+" ("+artist+" album).jpg");
-  const fallback=new Image();
-  fallback.referrerPolicy="no-referrer";
-  fallback.onload=()=>{
-   if(token!==artToken)return;
-   box.style.backgroundImage="url('"+fallback.src.replace(/'/g,"%27")+"')";
-   box.classList.add("show");
+ const names=[
+  album+" ("+artist+" album).jpg",
+  album+".jpg",
+  artist+" - "+album+".jpg"
+ ];
+ let n=0;
+ function next(){
+  if(token!==artToken||n>=names.length)return;
+  const img=new Image();
+  img.referrerPolicy="no-referrer";
+  img.onload=()=>{
+   if(token===artToken){
+    box.style.backgroundImage="url('"+img.src.replace(/'/g,"%27")+"')";
+    box.classList.add("show");
+   }
   };
-  fallback.src="https://en.wikipedia.org/wiki/Special:Redirect/file/"+file;
- };
- // Wikimedia thumbnail search URL can be addressed as an image through its
- // Special:Redirect/file endpoint; no API response is required by the page.
- img.src="https://en.wikipedia.org/wiki/Special:Redirect/file/"+encodeURIComponent(album+" ("+artist+" album).jpg");
+  img.onerror=()=>{n++;next()};
+  img.src="https://en.wikipedia.org/wiki/Special:Redirect/file/"+encodeURIComponent(names[n++]);
+ }
+ next();
 }
 function renderHistory(){
  const h=$("history");h.innerHTML="";
