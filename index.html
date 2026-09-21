@@ -128,11 +128,11 @@ function render(){
 
 function renderCover(artist,album){
  const box=$("cover"), token=++artToken;
- if(!artist||!album){
-  box.classList.remove("show"); box.style.backgroundImage="none"; return;
- }
+ box.classList.remove("show");
+ box.style.backgroundImage="none";
+ if(!artist||!album)return;
 
- const cacheKey="album-art-cache-v3";
+ const cacheKey="album-art-cache-v4";
  let cache={};
  try{cache=JSON.parse(localStorage.getItem(cacheKey)||"{}")}catch(e){}
  const key=artist+" — "+album;
@@ -146,47 +146,36 @@ function renderCover(artist,album){
     box.classList.add("show");
    }
   };
-  img.onerror=()=>{};
   img.src=url;
  }
 
- // During the spinning animation, never start network requests for each
- // passing album. Only show artwork that is already cached.
- if($("recordCard").classList.contains("spin-anim")){
-  box.classList.remove("show");
-  box.style.backgroundImage="none";
-  if(cache[key])show(cache[key]);
-  return;
- }
-
- box.classList.remove("show");
- box.style.backgroundImage="none";
  if(cache[key]){show(cache[key]);return}
 
- const query=encodeURIComponent(artist+" "+album);
- const api="https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+query+"&gsrnamespace=0&gsrlimit=5&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*";
+ const mbQuery="artist:"+encodeURIComponent('"'+artist+'"')+" AND releasegroup:"+encodeURIComponent('"'+album+'"');
+ const mbUrl="https://musicbrainz.org/ws/2/release-group/?query="+mbQuery+"&fmt=json&limit=5";
 
- fetch(api,{cache:"force-cache"})
+ fetch(mbUrl,{headers:{"Accept":"application/json"}})
   .then(r=>r.ok?r.json():null)
   .then(data=>{
    if(token!==artToken||!data)return;
-   const pages=data.query&&data.query.pages?Object.values(data.query.pages):[];
-   const wa=artist.toLowerCase(), wb=album.toLowerCase();
-   const ranked=pages.map(p=>{
-    const t=(p.title||"").toLowerCase();
-    let score=0;
-    if(t.includes(wa))score+=4;
-    if(t.includes(wb))score+=4;
-    if(p.thumbnail&&p.thumbnail.source)score+=2;
-    return {p,score};
-   }).sort((a,b)=>b.score-a.score);
-   const item=ranked.find(x=>x.p.thumbnail&&x.p.thumbnail.source);
-   if(!item)return;
-   const url=item.p.thumbnail.source;
+   const groups=(data&&data["release-groups"])||[];
+   const wantedArtist=artist.toLowerCase(), wantedAlbum=album.toLowerCase();
+   const exact=groups.find(g=>
+    (g.title||"").toLowerCase()===wantedAlbum &&
+    (g["artist-credit"]||[]).some(c=>((c.artist&&c.artist.name)||"").toLowerCase()===wantedArtist)
+   );
+   const group=exact||groups[0];
+   if(!group||!group.id)return;
+   return fetch("https://coverartarchive.org/release-group/"+group.id+"/front-500",{cache:"force-cache"})
+    .then(r=>r.ok?r.url:null);
+  })
+  .then(url=>{
+   if(!url||token!==artToken)return;
    cache[key]=url;
    try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}
    show(url);
-  }).catch(()=>{});
+  })
+  .catch(()=>{});
 }
 function renderHistory(){
  const h=$("history");h.innerHTML="";
@@ -213,10 +202,19 @@ function spin(){
  let ticks=0;
  const timer=setInterval(()=>{
   const i=state.remaining[Math.floor(Math.random()*state.remaining.length)];
-  state.current=i;render();
+  state.current=i;
+  const [ta,tb]=albums[i];
+  $("artist").textContent=ta;
+  $("album").textContent=tb;
+  $("status").textContent="Today's record";
+  $("meta").textContent="A random pick from your remaining "+state.remaining.length+" albums.";
   ticks++;
   if(ticks>=10){
-   clearInterval(timer);$("recordCard").classList.remove("spin-anim");$("spin").disabled=false;save();render();
+   clearInterval(timer);
+   $("recordCard").classList.remove("spin-anim");
+   $("spin").disabled=false;
+   save();
+   render();
   }
  },110);
 }
