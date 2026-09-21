@@ -128,8 +128,9 @@ function render(){
 
 function renderCover(artist,album){
  const box=$("cover"), token=++artToken;
- box.classList.remove("show"); box.style.backgroundImage="none";
- if(!artist||!album)return;
+ if(!artist||!album){
+  box.classList.remove("show"); box.style.backgroundImage="none"; return;
+ }
 
  const cacheKey="album-art-cache-v3";
  let cache={};
@@ -149,12 +150,23 @@ function renderCover(artist,album){
   img.src=url;
  }
 
+ // During the spinning animation, never start network requests for each
+ // passing album. Only show artwork that is already cached.
+ if($("recordCard").classList.contains("spin-anim")){
+  box.classList.remove("show");
+  box.style.backgroundImage="none";
+  if(cache[key])show(cache[key]);
+  return;
+ }
+
+ box.classList.remove("show");
+ box.style.backgroundImage="none";
  if(cache[key]){show(cache[key]);return}
 
  const query=encodeURIComponent(artist+" "+album);
  const api="https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+query+"&gsrnamespace=0&gsrlimit=5&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*";
 
- fetch(api,{cache:"no-store"})
+ fetch(api,{cache:"force-cache"})
   .then(r=>r.ok?r.json():null)
   .then(data=>{
    if(token!==artToken||!data)return;
