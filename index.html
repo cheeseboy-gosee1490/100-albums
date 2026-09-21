@@ -42,6 +42,7 @@ section{margin-top:28px}.section-title{font-size:12px;text-transform:uppercase;l
 </style>
 </head>
 <body>
+<script>document.body.childNodes.forEach(function(n){if(n.nodeType===3&&/^\\n+$/.test(n.nodeValue.trim()))n.remove()});</script>
 <main id="app">
 <header><div><div class="eyebrow">Daily listening project</div><h1>100 Albums</h1></div><div class="counter" id="counter">100<br>remaining</div></header>
 
