@@ -141,7 +141,7 @@ function clearArtwork(){
  box.classList.remove("show","loading");
  box.style.backgroundImage="none";
 }
-function updateSpinLabel(){ $("spin").textContent=state.history.length ? "🎰 Spin again" : "🎰 First spin"; $("status").textContent=state.history.length ? "READY TO SPIN AGAIN" : "READY TO SPIN"; }
+function updateSpinLabel(){ $("spin").textContent=state.history.length ? "Spin again" : "First spin"; $("status").textContent=state.history.length ? "READY TO SPIN AGAIN" : "READY TO SPIN"; }
 
 function render(){
  const completed=state.history.filter(x=>x.result==="LISTENED");
