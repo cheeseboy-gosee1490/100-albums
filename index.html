@@ -129,15 +129,18 @@ function render(){
 async function renderCover(term){
  const img=$("cover"), token=++artToken;
  if(!term){img.classList.remove("show");img.removeAttribute("src");return}
- img.classList.add("show");
- img.src="";
+ img.classList.remove("show");
+ img.removeAttribute("src");
  try{
   const r=await fetch("https://itunes.apple.com/search?term="+encodeURIComponent(term)+"&entity=album&media=music&limit=10");
   const data=await r.json();
   if(token!==artToken)return;
   const item=data.results.find(x=>x.collectionName&&x.artistName&&term.toLowerCase().includes(x.artistName.toLowerCase().split(" ")[0]))||data.results[0];
-  if(item&&item.artworkUrl100)img.src=item.artworkUrl100.replace("100x100","600x600");
-  else img.classList.remove("show");
+  if(item&&item.artworkUrl100){
+   const url=item.artworkUrl100.replace("100x100","600x600");
+   img.onload=()=>{if(token===artToken)img.classList.add("show")};
+   img.src=url;
+  }else img.classList.remove("show");
  }catch(e){if(token===artToken)img.classList.remove("show")}
 }
 
