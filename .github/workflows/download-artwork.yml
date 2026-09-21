@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Download artwork
         run: |
@@ -89,7 +91,7 @@ jobs:
                   except Exception as e:
                       print("  iTunes error:", e)
 
-          if url:
+              if url:
                   try:
                       download(url, path)
                       print(f"{n:03d} OK: {artist} — {album}")
@@ -118,8 +120,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add artwork/
           if git diff --cached --quiet; then
-            echo "No new artwork to commit."
+            echo "No artwork changes to commit."
           else
-            git commit -m "Add local album artwork"
+            git commit -m "Refresh canonical album artwork"
+            git pull --rebase origin main
             git push
           fi
