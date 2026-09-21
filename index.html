@@ -85,7 +85,7 @@ section{margin-top:28px}.section-title{font-size:11px;text-transform:uppercase;l
 </div>
 
 <div class="actions">
-<button class="primary" id="spin" type="button">🎰 Spin the wheel</button>
+<button class="primary" id="spin" type="button">🎰 First spin</button>
 <button id="heard" type="button" disabled>✓ I've listened</button>
 <button id="again" type="button" disabled>↻ Already heard</button>
 </div>
@@ -141,6 +141,8 @@ function clearArtwork(){
  box.classList.remove("show","loading");
  box.style.backgroundImage="none";
 }
+function updateSpinLabel(){ $("spin").textContent=state.history.length ? "🎰 Spin again" : "🎰 First spin"; }
+
 function render(){
  const completed=state.history.filter(x=>x.result==="LISTENED");
  $("counter").innerHTML=state.remaining.length+"<br>remaining";
@@ -161,6 +163,7 @@ function render(){
  $("apple").href="https://music.apple.com/gb/search?term="+q;
  $("spotify").setAttribute("aria-disabled",!hasCurrent);$("apple").setAttribute("aria-disabled",!hasCurrent);
  renderHistory();
+ updateSpinLabel();
 }
 
 function renderCover(artist,album){
