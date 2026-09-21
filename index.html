@@ -132,13 +132,13 @@ async function renderCover(term){
  box.style.backgroundImage="none";
  if(!term)return;
  try{
-  const r=await fetch("https://itunes.apple.com/search?term="+encodeURIComponent(term)+"&entity=album&media=music&limit=10");
+  const r=await fetch("https://api.deezer.com/search/album?q="+encodeURIComponent(term)+"&limit=10");
   const data=await r.json();
   if(token!==artToken)return;
-  const item=data.results.find(x=>x.collectionName&&x.artistName&&term.toLowerCase().includes(x.artistName.toLowerCase().split(" ")[0]))||data.results[0];
-  if(!item||!item.artworkUrl100)return;
-  const original=item.artworkUrl100.replace("100x100","600x600");
-  const url="https://images.weserv.nl/?url="+encodeURIComponent(original);
+  const wanted=term.toLowerCase();
+  const item=(data.data||[]).find(x=>x.title&&x.artist&&wanted.includes(x.artist.name.toLowerCase().split(" ")[0]))||(data.data||[])[0];
+  if(!item||!item.cover_xl)return;
+  const url=item.cover_xl;
   const preload=new Image();
   preload.onload=()=>{if(token===artToken){box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";box.classList.add("show")}};
   preload.onerror=()=>{if(token===artToken){box.style.backgroundImage="none";box.classList.remove("show")}};
