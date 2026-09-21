@@ -130,7 +130,7 @@ function renderCover(artist,album){
  box.classList.remove("show"); box.style.backgroundImage="none";
  if(!artist||!album)return;
 
- const cacheKey="album-art-cache-v5";
+ const cacheKey="album-art-cache-v6";
  let cache={};
  try{cache=JSON.parse(localStorage.getItem(cacheKey)||"{}")}catch(e){}
  const key=artist+" — "+album;
@@ -152,32 +152,61 @@ function renderCover(artist,album){
 
  if(cache[key]){show(cache[key]);return}
 
- const query=encodeURIComponent('artist:"'+artist+'" AND releasegroup:"'+album+'"');
- const mbUrl="https://musicbrainz.org/ws/2/release-group/?query="+query+"&fmt=json&limit=5";
-
- fetch(mbUrl,{headers:{"Accept":"application/json","User-Agent":"100Albums/1.0 (GitHub Pages)"}})
+ // iTunes Search is used first because it provides a direct artwork URL
+ // without needing a redirecting image endpoint.
+ const q=encodeURIComponent(artist+" "+album);
+ const itunes="https://itunes.apple.com/search?term="+q+"&entity=album&limit=10&country=GB";
+ fetch(itunes,{cache:"force-cache"})
   .then(r=>r.ok?r.json():null)
   .then(data=>{
-   if(token!==artToken||!data)throw new Error("mb");
-   const groups=(data["release-groups"]||[]);
+   if(token!==artToken||!data)throw new Error("itunes");
+   const results=data.results||[];
    const wa=artist.toLowerCase(), wb=album.toLowerCase();
-   const exact=groups.find(g=>
-    (g.title||"").toLowerCase()===wb &&
-    (g["artist-credit"]||[]).some(c=>((c.artist&&c.artist.name)||"").toLowerCase()===wa)
-   );
-   const group=exact||groups[0];
-   if(group&&group.id){
-    show("https://coverartarchive.org/release-group/"+group.id+"/front-500");
-    // Give CAA a moment; Wikipedia remains the fallback below if CAA has no front image.
-    setTimeout(()=>{if(token===artToken&&!box.classList.contains("show"))fallbackWikipedia()},1800);
-   }else fallbackWikipedia();
+   const ranked=results.map(x=>{
+    const a=(x.artistName||"").toLowerCase();
+    const b=(x.collectionName||"").toLowerCase();
+    let score=0;
+    if(a===wa)score+=10; else if(a.includes(wa)||wa.includes(a))score+=5;
+    if(b===wb)score+=10; else if(b.includes(wb)||wb.includes(b))score+=5;
+    if(x.artworkUrl100)score+=2;
+    return {x,score};
+   }).sort((a,b)=>b.score-a.score);
+   const hit=ranked.find(x=>x.x.artworkUrl100);
+   if(hit){
+    show(hit.x.artworkUrl100.replace("100x100","600x600"));
+    return;
+   }
+   fallbackWikipedia();
   })
-  .catch(()=>fallbackWikipedia());
+  .catch(()=>fallbackMusicBrainz());
+
+ function fallbackMusicBrainz(){
+  if(token!==artToken)return;
+  const query=encodeURIComponent('artist:"'+artist+'" AND releasegroup:"'+album+'"');
+  const mbUrl="https://musicbrainz.org/ws/2/release-group/?query="+query+"&fmt=json&limit=5";
+  fetch(mbUrl,{headers:{"Accept":"application/json","User-Agent":"100Albums/1.0 (GitHub Pages)"}})
+   .then(r=>r.ok?r.json():null)
+   .then(data=>{
+    if(token!==artToken||!data)throw new Error("mb");
+    const groups=data["release-groups"]||[];
+    const wa=artist.toLowerCase(), wb=album.toLowerCase();
+    const exact=groups.find(g=>
+     (g.title||"").toLowerCase()===wb &&
+     (g["artist-credit"]||[]).some(x=>((x.artist&&x.artist.name)||"").toLowerCase()===wa)
+    );
+    const group=exact||groups[0];
+    if(group&&group.id){
+     show("https://coverartarchive.org/release-group/"+group.id+"/front-500");
+     setTimeout(()=>{if(token===artToken&&!box.classList.contains("show"))fallbackWikipedia()},1800);
+    }else fallbackWikipedia();
+   })
+   .catch(()=>fallbackWikipedia());
+ }
 
  function fallbackWikipedia(){
   if(token!==artToken)return;
-  const q=encodeURIComponent(artist+" "+album);
-  const api="https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+q+"&gsrnamespace=0&gsrlimit=8&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*";
+  const wq=encodeURIComponent(artist+" "+album);
+  const api="https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+wq+"&gsrnamespace=0&gsrlimit=8&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*";
   fetch(api,{cache:"force-cache"})
    .then(r=>r.ok?r.json():null)
    .then(data=>{
