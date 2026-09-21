@@ -120,6 +120,7 @@ function render(){
  $("heard").disabled=state.current===null;
  $("again").disabled=state.current===null;
  const hasCurrent=state.current!==null;
+ if(!hasCurrent)clearArtwork();
  const [a,b]=hasCurrent?albums[state.current]:["Pick your first record.","One album a day."];
  $("artist").textContent=a;$("album").textContent=b;
  $("status").textContent=hasCurrent?"Today's record":"Ready to spin";
