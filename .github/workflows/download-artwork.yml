@@ -3,6 +3,10 @@ name: Download Album Artwork
 on:
   workflow_dispatch:
 
+concurrency:
+  group: download-album-artwork
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
