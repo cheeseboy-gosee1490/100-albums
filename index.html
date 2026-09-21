@@ -122,57 +122,46 @@ function render(){
  $("spotify").href="https://open.spotify.com/search/"+q;
  $("apple").href="https://music.apple.com/gb/search?term="+q;
  $("spotify").setAttribute("aria-disabled",!hasCurrent);$("apple").setAttribute("aria-disabled",!hasCurrent);
- renderCover(hasCurrent?a+" "+b:"");
+ renderCover(hasCurrent?a:null,hasCurrent?b:null);
  renderHistory();
 }
 
-function renderCover(term){
+function renderCover(artist,album){
  const box=$("cover"), token=++artToken;
- box.classList.remove("show"); box.style.backgroundImage="none";
- if(!term)return;
+ box.classList.remove("show");
+ box.style.backgroundImage="none";
+ if(!artist||!album)return;
 
- function loadJsonp(url,pick,done,timeout=7000){
-  const callback="albumArt_"+token+"_"+Math.random().toString(36).slice(2);
-  const script=document.createElement("script"); let finished=false;
-  const timer=setTimeout(()=>finish(null),timeout);
-  function finish(value){
-   if(finished)return; finished=true; clearTimeout(timer);
-   try{delete window[callback]}catch(e){window[callback]=undefined}
-   script.remove(); done(value);
-  }
-  window[callback]=data=>finish(pick(data));
-  script.onerror=()=>finish(null);
-  script.src=url+"&callback="+callback;
-  document.body.appendChild(script);
+ const candidates=[];
+ const add=(url)=>{if(url&&!candidates.includes(url))candidates.push(url)};
+ const wikiName=encodeURIComponent(album+" ("+artist+" album).jpg");
+ const simpleName=encodeURIComponent(album+".jpg");
+ add("https://en.wikipedia.org/wiki/Special:Redirect/file/"+wikiName);
+ add("https://en.wikipedia.org/wiki/Special:Redirect/file/"+simpleName);
+
+ function tryNext(n){
+  if(token!==artToken||n>=candidates.length)return;
+  const url=candidates[n], img=new Image();
+  img.onload=()=>{if(token===artToken){box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";box.classList.add("show")}};
+  img.onerror=()=>tryNext(n+1);
+  img.src=url;
  }
+ tryNext(0);
 
- function show(url){
-  if(!url||token!==artToken)return;
-  const preload=new Image();
-  preload.onload=()=>{if(token===artToken){box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";box.classList.add("show")}};
-  preload.src=url;
- }
-
- loadJsonp(
-  "https://api.deezer.com/search/album?q="+encodeURIComponent(term)+"&output=jsonp&limit=10",
-  data=>{
-   const rows=(data&&data.data)||[];
-   const item=rows.find(x=>x.cover_xl)||rows[0];
-   return item&&item.cover_xl||null;
-  },
-  url=>{
-   if(url){show(url);return}
-   loadJsonp(
-    "https://itunes.apple.com/search?term="+encodeURIComponent(term)+"&entity=album&media=music&limit=10",
-    data=>{
-     const rows=(data&&data.results)||[];
-     const item=rows.find(x=>x.artworkUrl100)||rows[0];
-     return item&&item.artworkUrl100?item.artworkUrl100.replace("100x100","600x600"):null;
-    },
-    url2=>{if(url2)show(url2)}
-   );
-  }
- );
+ // If Wikipedia's filename redirect doesn't find it, ask Wikipedia for the
+ // page's actual infobox image URL. This is read-only and requires no API key.
+ const title=encodeURIComponent(album+" ("+artist+" album)");
+ fetch("https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=pageimages&piprop=original&titles="+title)
+  .then(r=>r.ok?r.json():null)
+  .then(data=>{
+   if(token!==artToken||!data)return;
+   const pages=data.query&&data.query.pages?Object.values(data.query.pages):[];
+   const url=pages[0]&&pages[0].original&&pages[0].original.source;
+   if(!url)return;
+   const img=new Image();
+   img.onload=()=>{if(token===artToken){box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";box.classList.add("show")}};
+   img.src=url;
+  }).catch(()=>{});
 }
 function renderHistory(){
  const h=$("history");h.innerHTML="";
