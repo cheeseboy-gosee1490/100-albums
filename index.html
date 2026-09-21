@@ -137,7 +137,8 @@ async function renderCover(term){
   if(token!==artToken)return;
   const item=data.results.find(x=>x.collectionName&&x.artistName&&term.toLowerCase().includes(x.artistName.toLowerCase().split(" ")[0]))||data.results[0];
   if(!item||!item.artworkUrl100)return;
-  const url=item.artworkUrl100.replace("100x100","600x600");
+  const original=item.artworkUrl100.replace("100x100","600x600");
+  const url="https://images.weserv.nl/?url="+encodeURIComponent(original);
   const preload=new Image();
   preload.onload=()=>{if(token===artToken){box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";box.classList.add("show")}};
   preload.onerror=()=>{if(token===artToken){box.style.backgroundImage="none";box.classList.remove("show")}};
