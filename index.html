@@ -122,7 +122,6 @@ function render(){
  $("spotify").href="https://open.spotify.com/search/"+q;
  $("apple").href="https://music.apple.com/gb/search?term="+q;
  $("spotify").setAttribute("aria-disabled",!hasCurrent);$("apple").setAttribute("aria-disabled",!hasCurrent);
- renderCover(hasCurrent?a:null,hasCurrent?b:null);
  renderHistory();
 }
 
@@ -218,9 +217,9 @@ function spin(){
   $("status").textContent="Finished!";$("artist").textContent="You did all 100.";$("album").textContent="🎉";$("meta").textContent="Reset to start a new run.";return;
  }
  $("complete").classList.remove("show");
+ artToken++;
  $("cover").classList.remove("show");
  $("cover").style.backgroundImage="none";
- artToken++;
  $("recordCard").classList.add("spin-anim");
  $("spin").disabled=true;
  let ticks=0;
@@ -239,6 +238,8 @@ function spin(){
    $("spin").disabled=false;
    save();
    render();
+   const [fa,fb]=albums[state.current];
+   renderCover(fa,fb);
   }
  },110);
 }
@@ -258,7 +259,7 @@ function saveListened(){
  const [artist,album]=albums[state.current];
  state.remaining=state.remaining.filter(i=>i!==state.current);
  state.history.unshift({artist,album,result:"LISTENED",rating:selectedRating,date:$("listenDate").value||today(),notes:$("notes").value.trim(),favourite:isFavourite});
- state.current=null;save();$("complete").classList.remove("show");render();
+ state.current=null;save();$("complete").classList.remove("show");render();renderCover(null,null);
 }
 
 function alreadyHeard(){
@@ -266,7 +267,7 @@ function alreadyHeard(){
  const [artist,album]=albums[state.current];
  state.remaining=state.remaining.filter(i=>i!==state.current);
  state.history.unshift({artist,album,result:"ALREADY HEARD"});
- state.current=null;save();render();
+ state.current=null;save();render();renderCover(null,null);
 }
 
 $("spin").addEventListener("click",spin);
