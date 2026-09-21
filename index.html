@@ -255,6 +255,19 @@ function renderCover(artist,album){
 
  if(cache[key]){show(cache[key]);return}
 
+ const localIndex=albums.findIndex(x=>x[0]===artist&&x[1]===album);
+ if(localIndex>=0){
+  const localUrl="artwork/"+String(localIndex+1).padStart(3,"0")+".jpg?v=1";
+  const localImg=new Image();
+  localImg.onload=()=>show(localUrl);
+  localImg.onerror=()=>remoteArtwork();
+  localImg.src=localUrl;
+  return;
+ }
+
+ remoteArtwork();
+
+ function remoteArtwork(){
  // iTunes Search is used first because it provides a direct artwork URL
  // without needing a redirecting image endpoint.
  const q=encodeURIComponent(artist+" "+album);
