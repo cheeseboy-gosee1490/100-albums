@@ -49,6 +49,7 @@ jobs:
           overrides = {
               2: "https://coverartarchive.org/release/f40924ad-b34c-45c2-9b4a-5ece4913fbd6/front-1200",
               26: "https://coverartarchive.org/release/f96df5d2-4ef9-3ef4-a4be-c743802b6f1e/front-1200",
+              85: "https://coverartarchive.org/release/e771fac7-64b3-42ee-832b-af715920eab0/front-1200",
           }
 
           for n, (artist, album) in enumerate(albums, 1):
