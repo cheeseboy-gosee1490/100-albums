@@ -131,7 +131,7 @@ function renderCover(artist,album){
  if(!artist||!album)return;
  box.classList.add("show","loading");
 
- const cacheKey="album-art-cache-v6";
+ const cacheKey="album-art-cache-v7";
  let cache={};
  try{cache=JSON.parse(localStorage.getItem(cacheKey)||"{}")}catch(e){}
  const key=artist+" — "+album;
@@ -157,28 +157,27 @@ function renderCover(artist,album){
  // iTunes Search is used first because it provides a direct artwork URL
  // without needing a redirecting image endpoint.
  const q=encodeURIComponent(artist+" "+album);
- const itunes="https://itunes.apple.com/search?term="+q+"&entity=album&limit=10&country=GB";
+ const itunes="https://itunes.apple.com/search?term="+q+"&entity=album&attribute=albumTerm&limit=25&country=GB";
  fetch(itunes,{cache:"force-cache"})
   .then(r=>r.ok?r.json():null)
   .then(data=>{
    if(token!==artToken||!data)throw new Error("itunes");
    const results=data.results||[];
-   const wa=artist.toLowerCase(), wb=album.toLowerCase();
-   const ranked=results.map(x=>{
-    const a=(x.artistName||"").toLowerCase();
-    const b=(x.collectionName||"").toLowerCase();
-    let score=0;
-    if(a===wa)score+=10; else if(a.includes(wa)||wa.includes(a))score+=5;
-    if(b===wb)score+=10; else if(b.includes(wb)||wb.includes(b))score+=5;
-    if(x.artworkUrl100)score+=2;
-    return {x,score};
-   }).sort((a,b)=>b.score-a.score);
-   const hit=ranked.find(x=>x.x.artworkUrl100);
-   if(hit){
-    show(hit.x.artworkUrl100.replace("100x100","600x600"));
+   const wa=artist.trim().toLowerCase(), wb=album.trim().toLowerCase();
+   // Only accept a genuinely exact album + artist match. This prevents
+   // artist pages, compilations, deluxe editions and similarly named records
+   // from supplying the wrong cover.
+   const exact=results.find(x=>
+    x.wrapperType==="collection" &&
+    String(x.collectionName||"").trim().toLowerCase()===wb &&
+    String(x.artistName||"").trim().toLowerCase()===wa &&
+    x.artworkUrl100
+   );
+   if(exact){
+    show(exact.artworkUrl100.replace("100x100","600x600"));
     return;
    }
-   fallbackWikipedia();
+   fallbackMusicBrainz();
   })
   .catch(()=>fallbackMusicBrainz());
 
