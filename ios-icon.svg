@@ -9,7 +9,7 @@
  <clipPath id="c"><rect x="14" y="14" width="484" height="484" rx="82"/></clipPath>
 </defs>
 <rect width="512" height="512" fill="#050507"/>
-<rect x="14" y="14" width="484" height="484" rx="82" fill="#030305" stroke="url(#chrome)" stroke-width="6"/>
+<rect x="0" y="0" width="512" height="512" fill="#030305"/>
 <g clip-path="url(#c)">
  <!-- subtle worn texture -->
  <g stroke="#fff" opacity=".22" stroke-width="1">
@@ -35,5 +35,5 @@
  <path d="M420 70 L429 99 L458 108 L429 117 L420 146 L411 117 L382 108 L411 99 Z" fill="url(#ir)" stroke="#fff" stroke-width="1"/>
  <path d="M420 78 L424 104 L450 108 L424 112 L420 138 L416 112 L390 108 L416 104 Z" fill="#fff" opacity=".75"/>
 </g>
-<rect x="14" y="14" width="484" height="484" rx="82" fill="none" stroke="#fff" stroke-width="2" opacity=".5"/>
+
 </svg>
