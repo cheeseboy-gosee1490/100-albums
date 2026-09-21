@@ -132,36 +132,38 @@ function renderCover(artist,album){
  box.style.backgroundImage="none";
  if(!artist||!album)return;
 
- const candidates=[];
- const add=(url)=>{if(url&&!candidates.includes(url))candidates.push(url)};
- const wikiName=encodeURIComponent(album+" ("+artist+" album).jpg");
- const simpleName=encodeURIComponent(album+".jpg");
- add("https://en.wikipedia.org/wiki/Special:Redirect/file/"+wikiName);
- add("https://en.wikipedia.org/wiki/Special:Redirect/file/"+simpleName);
+ const query=encodeURIComponent(artist+" "+album);
+ const url="https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+query+"&gsrnamespace=0&gsrlimit=5&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*";
 
- function tryNext(n){
-  if(token!==artToken||n>=candidates.length)return;
-  const url=candidates[n], img=new Image();
-  img.onload=()=>{if(token===artToken){box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";box.classList.add("show")}};
-  img.onerror=()=>tryNext(n+1);
-  img.src=url;
- }
- tryNext(0);
-
- // If Wikipedia's filename redirect doesn't find it, ask Wikipedia for the
- // page's actual infobox image URL. This is read-only and requires no API key.
- const title=encodeURIComponent(album+" ("+artist+" album)");
- fetch("https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=pageimages&piprop=original&titles="+title)
+ fetch(url,{cache:"no-store"})
   .then(r=>r.ok?r.json():null)
   .then(data=>{
    if(token!==artToken||!data)return;
    const pages=data.query&&data.query.pages?Object.values(data.query.pages):[];
-   const url=pages[0]&&pages[0].original&&pages[0].original.source;
-   if(!url)return;
+   const wantedArtist=artist.toLowerCase();
+   const wantedAlbum=album.toLowerCase();
+   const scored=pages.map(p=>{
+    const title=(p.title||"").toLowerCase();
+    let score=0;
+    if(title.includes(wantedArtist))score+=3;
+    if(title.includes(wantedAlbum))score+=3;
+    if(p.thumbnail&&p.thumbnail.source)score+=1;
+    return {p,score};
+   }).sort((a,b)=>b.score-a.score);
+   const item=scored.find(x=>x.p.thumbnail&&x.p.thumbnail.source);
+   if(!item)return;
+   const imageUrl=item.p.thumbnail.source;
    const img=new Image();
-   img.onload=()=>{if(token===artToken){box.style.backgroundImage="url('"+url.replace(/'/g,"%27")+"')";box.classList.add("show")}};
-   img.src=url;
-  }).catch(()=>{});
+   img.onload=()=>{
+    if(token===artToken){
+     box.style.backgroundImage="url('"+imageUrl.replace(/'/g,"%27")+"')";
+     box.classList.add("show");
+    }
+   };
+   img.onerror=()=>{};
+   img.src=imageUrl;
+  })
+  .catch(()=>{});
 }
 function renderHistory(){
  const h=$("history");h.innerHTML="";
