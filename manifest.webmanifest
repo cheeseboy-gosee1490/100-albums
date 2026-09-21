@@ -1,1 +1,1 @@
-{"name":"100 Albums","short_name":"100 Albums","start_url":".","display":"standalone","background_color":"#0b0b0d","theme_color":"#0b0b0d","description":"A daily random album listening project.","icons":[]}
+{"name":"100 Albums","short_name":"100 Albums","start_url":".","display":"standalone","background_color":"#09090b","theme_color":"#09090b","description":"A daily random album listening project.","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
