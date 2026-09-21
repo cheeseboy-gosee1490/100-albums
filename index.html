@@ -172,26 +172,55 @@ function preloadArtworkBatch(){
  try{cache=JSON.parse(localStorage.getItem(cacheKey)||"{}")}catch(e){}
  const candidates=state.remaining.filter(i=>!cache[albums[i][0]+" — "+albums[i][1]]).slice(0,8);
  let pos=0,active=0;
- function next(){
-  if(pos>=candidates.length)return;
-  const i=candidates[pos++], [artist,album]=albums[i], key=artist+" — "+album;
-  active++;
+ function store(key,url){
+  return new Promise(resolve=>{
+   if(!url)return resolve(false);
+   const img=new Image();
+   img.onload=()=>{
+    cache[key]=url;
+    try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}
+    resolve(true);
+   };
+   img.onerror=()=>resolve(false);
+   img.src=url;
+  });
+ }
+ function resolveArtwork(artist,album,key){
   const q=encodeURIComponent(artist+" "+album);
-  fetch("https://itunes.apple.com/search?term="+q+"&entity=album&attribute=albumTerm&limit=25&country=GB",{cache:"force-cache"})
+  return fetch("https://itunes.apple.com/search?term="+q+"&entity=album&attribute=albumTerm&limit=25&country=GB",{cache:"force-cache"})
    .then(r=>r.ok?r.json():null)
    .then(data=>{
-    const results=data&&data.results||[], wa=artist.trim().toLowerCase(), wb=album.trim().toLowerCase();
+    const results=data&&data.results||[];
+    const wa=artist.trim().toLowerCase(), wb=album.trim().toLowerCase();
     const exact=results.find(x=>x.wrapperType==="collection"&&String(x.collectionName||"").trim().toLowerCase()===wb&&String(x.artistName||"").trim().toLowerCase()===wa&&x.artworkUrl100);
-    if(exact){
-     const url=exact.artworkUrl100.replace("100x100","600x600");
-     cache[key]=url;
-     const img=new Image();
-     img.onload=()=>{try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}};
-     img.src=url;
-    }
+    if(exact)return exact.artworkUrl100.replace("100x100","600x600");
+    return fetch("https://musicbrainz.org/ws/2/release-group/?query="+encodeURIComponent('artist:"'+artist+'" AND releasegroup:"'+album+'"')+"&fmt=json&limit=5",{headers:{"Accept":"application/json","User-Agent":"100Albums/1.0 (GitHub Pages)"}})
+     .then(r=>r.ok?r.json():null)
+     .then(mb=>{
+      const groups=mb&&mb["release-groups"]||[];
+      const wa2=artist.toLowerCase(),wb2=album.toLowerCase();
+      const exact2=groups.find(g=>(g.title||"").toLowerCase()===wb2&&(g["artist-credit"]||[]).some(x=>((x.artist&&x.artist.name)||"").toLowerCase()===wa2));
+      const group=exact2||groups[0];
+      if(group&&group.id)return "https://coverartarchive.org/release-group/"+group.id+"/front-500";
+      return null;
+     });
    })
-   .catch(()=>{})
-   .finally(()=>{active--;next()});
+   .catch(()=>null)
+   .then(url=>url||fetch("https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+encodeURIComponent(artist+" "+album)+"&gsrnamespace=0&gsrlimit=8&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*",{cache:"force-cache"})
+    .then(r=>r.ok?r.json():null)
+    .then(data=>{
+     const pages=Object.values((data&&data.query&&data.query.pages)||{});
+     const wa=artist.toLowerCase(),wb=album.toLowerCase();
+     const ranked=pages.map(p=>{const t=(p.title||"").toLowerCase();let score=0;if(t.includes(wa))score+=5;if(t.includes(wb))score+=5;if(p.thumbnail&&p.thumbnail.source)score+=2;return {p,score}}).sort((a,b)=>b.score-a.score);
+     const item=ranked.find(x=>x.p.thumbnail&&x.p.thumbnail.source);
+     return item&&item.p.thumbnail.source;
+    }).catch(()=>null));
+ }
+ function next(){
+  if(pos>=candidates.length)return;
+  const i=candidates[pos++],[artist,album]=albums[i],key=artist+" — "+album;
+  active++;
+  resolveArtwork(artist,album,key).then(url=>store(key,url)).catch(()=>{}).finally(()=>{active--;next()});
  }
  while(active<2&&pos<candidates.length)next();
 }
