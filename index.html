@@ -132,38 +132,31 @@ function renderCover(artist,album){
  box.style.backgroundImage="none";
  if(!artist||!album)return;
 
- const query=encodeURIComponent(artist+" "+album);
- const url="https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+query+"&gsrnamespace=0&gsrlimit=5&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*";
-
- fetch(url,{cache:"no-store"})
-  .then(r=>r.ok?r.json():null)
-  .then(data=>{
-   if(token!==artToken||!data)return;
-   const pages=data.query&&data.query.pages?Object.values(data.query.pages):[];
-   const wantedArtist=artist.toLowerCase();
-   const wantedAlbum=album.toLowerCase();
-   const scored=pages.map(p=>{
-    const title=(p.title||"").toLowerCase();
-    let score=0;
-    if(title.includes(wantedArtist))score+=3;
-    if(title.includes(wantedAlbum))score+=3;
-    if(p.thumbnail&&p.thumbnail.source)score+=1;
-    return {p,score};
-   }).sort((a,b)=>b.score-a.score);
-   const item=scored.find(x=>x.p.thumbnail&&x.p.thumbnail.source);
-   if(!item)return;
-   const imageUrl=item.p.thumbnail.source;
-   const img=new Image();
-   img.onload=()=>{
-    if(token===artToken){
-     box.style.backgroundImage="url('"+imageUrl.replace(/'/g,"%27")+"')";
-     box.classList.add("show");
-    }
-   };
-   img.onerror=()=>{};
-   img.src=imageUrl;
-  })
-  .catch(()=>{});
+ // Use a plain image element rather than fetch/XHR. Mobile Safari can display
+ // cross-origin images directly even when JavaScript requests are restricted.
+ const img=new Image();
+ img.alt="";
+ img.referrerPolicy="no-referrer";
+ img.onload=()=>{
+  if(token!==artToken)return;
+  box.style.backgroundImage="url('"+img.src.replace(/'/g,"%27")+"')";
+  box.classList.add("show");
+ };
+ img.onerror=()=>{
+  // Try the Wikimedia Special:Redirect/file route as a second direct-image source.
+  const file=encodeURIComponent(album+" ("+artist+" album).jpg");
+  const fallback=new Image();
+  fallback.referrerPolicy="no-referrer";
+  fallback.onload=()=>{
+   if(token!==artToken)return;
+   box.style.backgroundImage="url('"+fallback.src.replace(/'/g,"%27")+"')";
+   box.classList.add("show");
+  };
+  fallback.src="https://en.wikipedia.org/wiki/Special:Redirect/file/"+file;
+ };
+ // Wikimedia thumbnail search URL can be addressed as an image through its
+ // Special:Redirect/file endpoint; no API response is required by the page.
+ img.src="https://en.wikipedia.org/wiki/Special:Redirect/file/"+encodeURIComponent(album+" ("+artist+" album).jpg");
 }
 function renderHistory(){
  const h=$("history");h.innerHTML="";
