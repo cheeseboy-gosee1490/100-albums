@@ -166,6 +166,36 @@ function render(){
  updateSpinLabel();
 }
 
+function preloadArtworkBatch(){
+ const cacheKey="album-art-cache-v7";
+ let cache={};
+ try{cache=JSON.parse(localStorage.getItem(cacheKey)||"{}")}catch(e){}
+ const candidates=state.remaining.filter(i=>!cache[albums[i][0]+" — "+albums[i][1]]).slice(0,8);
+ let pos=0,active=0;
+ function next(){
+  if(pos>=candidates.length)return;
+  const i=candidates[pos++], [artist,album]=albums[i], key=artist+" — "+album;
+  active++;
+  const q=encodeURIComponent(artist+" "+album);
+  fetch("https://itunes.apple.com/search?term="+q+"&entity=album&attribute=albumTerm&limit=25&country=GB",{cache:"force-cache"})
+   .then(r=>r.ok?r.json():null)
+   .then(data=>{
+    const results=data&&data.results||[], wa=artist.trim().toLowerCase(), wb=album.trim().toLowerCase();
+    const exact=results.find(x=>x.wrapperType==="collection"&&String(x.collectionName||"").trim().toLowerCase()===wb&&String(x.artistName||"").trim().toLowerCase()===wa&&x.artworkUrl100);
+    if(exact){
+     const url=exact.artworkUrl100.replace("100x100","600x600");
+     cache[key]=url;
+     const img=new Image();
+     img.onload=()=>{try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}};
+     img.src=url;
+    }
+   })
+   .catch(()=>{})
+   .finally(()=>{active--;next()});
+ }
+ while(active<2&&pos<candidates.length)next();
+}
+
 function renderCover(artist,album){
  const box=$("cover"), token=++artToken;
  box.classList.remove("show","loading"); box.style.backgroundImage="none";
@@ -318,6 +348,7 @@ function spin(){
    $("spin").disabled=false;
    save();
    render();
+   preloadArtworkBatch();
    const [fa,fb]=albums[state.current];
    renderCover(fa,fb);
   }
@@ -365,6 +396,7 @@ if("serviceWorker" in navigator){
 }
 clearArtwork();
 render();
+preloadArtworkBatch();
 </script>
 </body>
 </html>
