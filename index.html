@@ -128,17 +128,14 @@ function render(){
 
 function renderCover(artist,album){
  const box=$("cover"), token=++artToken;
- box.classList.remove("show"); box.style.backgroundImage="none";
+ box.classList.remove("show");
+ box.style.backgroundImage="none";
  if(!artist||!album)return;
 
- const cacheKey="album-art-cache-v2";
+ const cacheKey="album-art-cache-v1";
  let cache={};
  try{cache=JSON.parse(localStorage.getItem(cacheKey)||"{}")}catch(e){}
  const key=artist+" — "+album;
- if(cache[key]){
-  show(cache[key]);
-  return;
- }
 
  function show(url){
   if(!url||token!==artToken)return;
@@ -152,15 +149,28 @@ function renderCover(artist,album){
   img.src=url;
  }
 
- // Wikipedia's REST summary endpoint is considerably faster than a search query.
- const title=encodeURIComponent(album+" ("+artist+" album)");
- fetch("https://en.wikipedia.org/api/rest_v1/page/summary/"+title,{cache:"force-cache"})
+ if(cache[key]){show(cache[key]);return}
+
+ const query=encodeURIComponent(artist+" "+album);
+ const api="https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+query+"&gsrnamespace=0&gsrlimit=5&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*";
+
+ fetch(api)
   .then(r=>r.ok?r.json():null)
   .then(data=>{
-   if(!data)return;
-   const url=(data.originalimage&&data.originalimage.source)||
-            (data.thumbnail&&data.thumbnail.source);
-   if(!url)return;
+   if(token!==artToken||!data)return;
+   const pages=data.query&&data.query.pages?Object.values(data.query.pages):[];
+   const wa=artist.toLowerCase(), wb=album.toLowerCase();
+   const ranked=pages.map(p=>{
+    const t=(p.title||"").toLowerCase();
+    let score=0;
+    if(t.includes(wa))score+=4;
+    if(t.includes(wb))score+=4;
+    if(p.thumbnail&&p.thumbnail.source)score+=2;
+    return {p,score};
+   }).sort((a,b)=>b.score-a.score);
+   const item=ranked.find(x=>x.p.thumbnail&&x.p.thumbnail.source);
+   if(!item)return;
+   const url=item.p.thumbnail.source;
    cache[key]=url;
    try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}
    show(url);
