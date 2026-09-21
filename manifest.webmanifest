@@ -1,1 +1,1 @@
-{"name":"100 Albums","short_name":"100 Albums","start_url":".","display":"standalone","background_color":"#09090b","theme_color":"#09090b","description":"A daily random album listening project.","icons":[{"src":"icon.svg","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}
+{"name":"100 Albums","short_name":"100 Albums","start_url":".","display":"standalone","background_color":"#09090b","theme_color":"#09090b","description":"A daily random album listening project.","icons":[{"src":"ios-icon.svg?v=2","sizes":"512x512","type":"image/svg+xml","purpose":"any"}]}
