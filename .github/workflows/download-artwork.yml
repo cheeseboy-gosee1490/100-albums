@@ -45,9 +45,15 @@ jobs:
 
           missing = []
 
+          # Explicit canonical cover overrides for releases where automatic matching can pick the wrong edition/artwork.
+          overrides = {
+              2: "https://coverartarchive.org/release/f40924ad-b34c-45c2-9b4a-5ece4913fbd6/front-1200",
+              26: "https://coverartarchive.org/release/f96df5d2-4ef9-3ef4-a4be-c743802b6f1e/front-1200",
+          }
+
           for n, (artist, album) in enumerate(albums, 1):
               path = f"artwork/{n:03d}.jpg"
-              url = None
+              url = overrides.get(n)
 
               # Prefer MusicBrainz/Cover Art Archive for canonical album sleeves.
               try:
