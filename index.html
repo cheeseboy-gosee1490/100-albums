@@ -77,7 +77,7 @@ section{margin-top:28px}.section-title{font-size:11px;text-transform:uppercase;l
 <div class="card" id="recordCard" aria-live="polite">
 <div class="cover" id="cover" aria-hidden="true"></div>
 <div class="card-copy">
-<div class="status" id="status">Ready to spin</div>
+<div class="status" id="status">YOUR NEXT PICK</div>
 <div class="artist" id="artist">Pick your first record.</div>
 <div class="album" id="album">Pick an album from the list.</div>
 <div class="meta" id="meta">No repeats. Your progress is saved on this device.</div>
@@ -122,6 +122,109 @@ const albums=[
 ["Talk Talk","The Party's Over"],["The Velvet Underground","White Light/White Heat"],["Radiohead","Amnesiac"],["The Boo Radleys","Giant Steps"],["The Sound","Jeopardy"],["Wire","Chairs Missing"],["The Breeders","Pod"],["Television","Marquee Moon"],["David Bowie","Low"],["Can","Future Days"],["Brian Eno","Another Green World"],["The Cure","Disintegration"],["Sonic Youth","Daydream Nation"],["Talking Heads","Fear of Music"],["Nick Drake","Bryter Layter"],["The Stooges","Fun House"],["Wire","Pink Flag"],["Portishead","Dummy"],["Massive Attack","Mezzanine"],["Aphex Twin","Selected Ambient Works 85–92"],["Ween","The Pod"],["Slint","Spiderland"],["Built to Spill","Keep It Like a Secret"],["Yo La Tengo","I Can Hear the Heart Beating as One"],["The Jesus and Mary Chain","Psychocandy"],["Cocteau Twins","Heaven or Las Vegas"],["Slowdive","Souvlaki"],["Ride","Nowhere"],["Spiritualized","Ladies and Gentlemen We Are Floating in Space"],["Unwound","Leaves Turn Inside You"],["Fugazi","Repeater"],["Wire","154"],["Gang of Four","Entertainment!"],["Magazine","Real Life"],["The Fall","Hex Enduction Hour"],["Public Image Ltd","Metal Box"],["The Pop Group","Y"],["Swell Maps","A Trip to Marineville"],["The Clean","Vehicle"],["The Feelies","Crazy Rhythms"],["Scott Walker","Scott 4"],["Talk Talk","Laughing Stock"],["Bark Psychosis","Hex"],["Disco Inferno","D.I. Go Pop"],["Gastr del Sol","Camoufleur"],["Silver Apples","Silver Apples"],["Faust","Faust"],["Neu!","Neu!"],["Ash Ra Tempel","Ash Ra Tempel"],["This Heat","Deceit"],["Swans","To Be Kind"],["Black Midi","Cavalcade"],["Black Midi","Hellfire"],["Deerhoof","Friend Opportunity"],["Xiu Xiu","Fabulous Muscles"],["Animal Collective","Merriweather Post Pavilion"],["Broadcast","The Noise Made by the People"],["Stereolab","Dots and Loops"],["Deerhunter","Halcyon Digest"],["Cindy Lee","Diamond Jubilee"],["Marvin Gaye","What's Going On"],["Curtis Mayfield","Super Fly"],["Stevie Wonder","Songs in the Key of Life"],["Sly & the Family Stone","There's a Riot Goin' On"],["Can","Ege Bamyasi"],["Miles Davis","Bitches Brew"],["Herbie Hancock","Mwandishi"],["Alice Coltrane","Journey in Satchidananda"],["Sun Ra","Space Is the Place"],["Charles Mingus","The Black Saint and the Sinner Lady"],["Pharoah Sanders","Karma"],["Fela Kuti","Expensive Shit"],["Talking Heads","Speaking in Tongues"],["Funkadelic","Maggot Brain"],["Terry Callier","Occasional Rain"],["A Tribe Called Quest","The Low End Theory"],["De La Soul","3 Feet High and Rising"],["OutKast","Aquemini"],["MF DOOM","MM..FOOD"],["J Dilla","Donuts"],["DJ Shadow","Endtroducing....."],["Boards of Canada","Music Has the Right to Children"],["Burial","Untrue"],["Four Tet","Rounds"],["The Avalanches","Since I Left You"],["The Knife","Silent Shout"],["Oneohtrix Point Never","Replica"],["Flying Lotus","Cosmogramma"],["Death Grips","The Money Store"],["SOPHIE","OIL OF EVERY PEARL'S UN-INSIDES"],["Kate Bush","Hounds of Love"],["Scott Walker","Tilt"],["PJ Harvey","To Bring You My Love"],["Elliott Smith","Either/Or"],["Fiona Apple","When the Pawn..."],["Big Star","#1 Record"],["Roxy Music","For Your Pleasure"],["The Millennium","Begin"],["Serge Gainsbourg","Histoire de Melody Nelson"],["The Beach Boys","Sunflower"]
 ];
 
+const albumInfo = {
+"Talk Talk|The Party's Over":["Post-punk / New wave",1982],
+"The Velvet Underground|White Light/White Heat":["Art rock / Proto-punk",1968],
+"Radiohead|Amnesiac":["Art rock / Electronic",2001],
+"The Boo Radleys|Giant Steps":["Indie rock / Shoegaze",1993],
+"The Sound|Jeopardy":["Post-punk",1980],
+"Wire|Chairs Missing":["Post-punk / Art punk",1978],
+"The Breeders|Pod":["Alternative rock",1990],
+"Television|Marquee Moon":["Art punk / Rock",1977],
+"David Bowie|Low":["Art rock / Electronic",1977],
+"Can|Future Days":["Krautrock / Experimental",1973],
+"Brian Eno|Another Green World":["Ambient / Art rock",1975],
+"The Cure|Disintegration":["Gothic rock / Alternative",1989],
+"Sonic Youth|Daydream Nation":["Noise rock / Alternative",1988],
+"Talking Heads|Fear of Music":["Art rock / New wave",1979],
+"Nick Drake|Bryter Layter":["Folk rock",1971],
+"The Stooges|Fun House":["Proto-punk / Rock",1970],
+"Wire|Pink Flag":["Post-punk / Art punk",1977],
+"Portishead|Dummy":["Trip-hop",1994],
+"Massive Attack|Mezzanine":["Trip-hop / Electronic",1998],
+"Aphex Twin|Selected Ambient Works 85–92":["Ambient techno / IDM",1992],
+"Ween|The Pod":["Lo-fi / Experimental rock",1991],
+"Slint|Spiderland":["Post-rock / Math rock",1991],
+"Built to Spill|Keep It Like a Secret":["Indie rock",1999],
+"Yo La Tengo|I Can Hear the Heart Beating as One":["Indie rock / Noise pop",1997],
+"The Jesus and Mary Chain|Psychocandy":["Noise pop / Post-punk",1985],
+"Cocteau Twins|Heaven or Las Vegas":["Dream pop / Shoegaze",1990],
+"Slowdive|Souvlaki":["Shoegaze / Dream pop",1993],
+"Ride|Nowhere":["Shoegaze / Alternative",1990],
+"Spiritualized|Ladies and Gentlemen We Are Floating in Space":["Space rock / Psychedelic rock",1997],
+"Unwound|Leaves Turn Inside You":["Post-hardcore / Noise rock",2001],
+"Fugazi|Repeater":["Post-hardcore / Punk",1990],
+"Wire|154":["Post-punk / Art rock",1979],
+"Gang of Four|Entertainment!":["Post-punk / Funk rock",1979],
+"Magazine|Real Life":["Post-punk / Art rock",1978],
+"The Fall|Hex Enduction Hour":["Post-punk",1982],
+"Public Image Ltd|Metal Box":["Post-punk / Experimental",1979],
+"The Pop Group|Y":["Post-punk / Experimental",1979],
+"Swell Maps|A Trip to Marineville":["Post-punk / Art punk",1979],
+"The Clean|Vehicle":["Indie pop / Post-punk",1990],
+"The Feelies|Crazy Rhythms":["Indie rock / Jangle pop",1980],
+"Scott Walker|Scott 4":["Art pop / Baroque pop",1969],
+"Talk Talk|Laughing Stock":["Art rock / Post-rock",1991],
+"Bark Psychosis|Hex":["Post-rock / Experimental",1994],
+"Disco Inferno|D.I. Go Pop":["Post-rock / Experimental",1994],
+"Gastr del Sol|Camoufleur":["Experimental rock / Post-rock",1998],
+"Silver Apples|Silver Apples":["Electronic / Psychedelic",1968],
+"Faust|Faust":["Krautrock / Experimental",1971],
+"Neu!|Neu!":["Krautrock",1972],
+"Ash Ra Tempel|Ash Ra Tempel":["Krautrock / Psychedelic",1971],
+"This Heat|Deceit":["Experimental rock / Post-punk",1981],
+"Swans|To Be Kind":["Experimental rock / Post-rock",2014],
+"Black Midi|Cavalcade":["Experimental rock / Math rock",2021],
+"Black Midi|Hellfire":["Experimental rock / Art rock",2022],
+"Deerhoof|Friend Opportunity":["Indie rock / Experimental",2007],
+"Xiu Xiu|Fabulous Muscles":["Experimental / Indie rock",2004],
+"Animal Collective|Merriweather Post Pavilion":["Psychedelic pop / Experimental",2009],
+"Broadcast|The Noise Made by the People":["Indie pop / Electronic",2000],
+"Stereolab|Dots and Loops":["Indie pop / Krautrock",1997],
+"Deerhunter|Halcyon Digest":["Indie rock / Dream pop",2010],
+"Cindy Lee|Diamond Jubilee":["Lo-fi pop / Indie",2024],
+"Marvin Gaye|What's Going On":["Soul / R&B",1971],
+"Curtis Mayfield|Super Fly":["Soul / Funk",1972],
+"Stevie Wonder|Songs in the Key of Life":["Soul / Funk / R&B",1976],
+"Sly & the Family Stone|There's a Riot Goin' On":["Funk / Soul",1971],
+"Can|Ege Bamyasi":["Krautrock / Experimental",1972],
+"Miles Davis|Bitches Brew":["Jazz fusion",1970],
+"Herbie Hancock|Mwandishi":["Jazz fusion / Avant-garde jazz",1971],
+"Alice Coltrane|Journey in Satchidananda":["Spiritual jazz",1971],
+"Sun Ra|Space Is the Place":["Avant-garde jazz / Free jazz",1973],
+"Charles Mingus|The Black Saint and the Sinner Lady":["Avant-garde jazz",1963],
+"Pharoah Sanders|Karma":["Spiritual jazz",1969],
+"Fela Kuti|Expensive Shit":["Afrobeat",1975],
+"Talking Heads|Speaking in Tongues":["New wave / Funk",1983],
+"Funkadelic|Maggot Brain":["Funk / Psychedelic rock",1971],
+"Terry Callier|Occasional Rain":["Soul / Folk",1972],
+"A Tribe Called Quest|The Low End Theory":["Hip-hop / Jazz rap",1991],
+"De La Soul|3 Feet High and Rising":["Hip-hop / Alternative rap",1989],
+"OutKast|Aquemini":["Hip-hop / Southern rap",1998],
+"MF DOOM|MM..FOOD":["Hip-hop / Underground rap",2004],
+"J Dilla|Donuts":["Instrumental hip-hop",2006],
+"DJ Shadow|Endtroducing.....":["Instrumental hip-hop / Trip-hop",1996],
+"Boards of Canada|Music Has the Right to Children":["IDM / Ambient",1998],
+"Burial|Untrue":["UK garage / Dubstep",2007],
+"Four Tet|Rounds":["Electronic / Folktronica",2003],
+"The Avalanches|Since I Left You":["Sampledelia / Electronic",2000],
+"The Knife|Silent Shout":["Electropop / Electronic",2006],
+"Oneohtrix Point Never|Replica":["Experimental electronic / Ambient",2011],
+"Flying Lotus|Cosmogramma":["Electronic / Jazz fusion",2010],
+"Death Grips|The Money Store":["Experimental hip-hop / Industrial",2012],
+"SOPHIE|OIL OF EVERY PEARL'S UN-INSIDES":["Experimental pop / Electronic",2018],
+"Kate Bush|Hounds of Love":["Art pop / Art rock",1985],
+"Scott Walker|Tilt":["Experimental pop / Art rock",1995],
+"PJ Harvey|To Bring You My Love":["Alternative rock / Blues rock",1995],
+"Elliott Smith|Either/Or":["Indie folk / Singer-songwriter",1997],
+"Fiona Apple|When the Pawn...":["Art pop / Alternative",1999],
+"Big Star|#1 Record":["Power pop / Rock",1972],
+"Roxy Music|For Your Pleasure":["Art rock / Glam rock",1973],
+"The Millennium|Begin":["Sunshine pop / Psychedelic pop",1968],
+"Serge Gainsbourg|Histoire de Melody Nelson":["Art pop / Baroque pop",1971],
+"The Beach Boys|Sunflower":["Pop rock / Soft rock",1970]
+};
+
 const key="album100-progress-v1";
 const old=JSON.parse(localStorage.getItem(key)||"null");
 let state=old||{remaining:albums.map((_,i)=>i),history:[],current:null};
@@ -156,8 +259,8 @@ function render(){
  if(!hasCurrent)clearArtwork();
  const [a,b]=hasCurrent?albums[state.current]:(state.history.length?["Ready for another spin.","Spin again to pick your next album."]:["Pick your first record.","Pick an album from the list."]);
  $("artist").textContent=a;$("album").textContent=b;
- $("status").textContent=hasCurrent?"Selected album":"Ready to spin";
- $("meta").textContent=hasCurrent?"A random pick from your remaining "+state.remaining.length+" albums.":"No repeats. Your progress is saved on this device.";
+ $("status").textContent=hasCurrent?"YOUR PICK":"YOUR NEXT PICK";
+ $("meta").innerHTML=hasCurrent?((albumInfo[a+"|"+b]||["Album",""])[0]+" <span aria-hidden=\"true\">•</span> "+(albumInfo[a+"|"+b]||["","" ])[1]):"No repeats. Your progress is saved on this device.";
  const q=encodeURIComponent(a+" "+b);
  $("spotify").href="https://open.spotify.com/search/"+q;
  $("apple").href="https://music.apple.com/gb/search?term="+q;
@@ -235,8 +338,9 @@ function spin(){
   const [ta,tb]=albums[i];
   $("artist").textContent=ta;
   $("album").textContent=tb;
-  $("status").textContent="Selected album";
-  $("meta").textContent="A random pick from your remaining "+state.remaining.length+" albums.";
+  $("status").textContent="YOUR PICK";
+  const info=albumInfo[ta+"|"+tb]||["Album",""];
+  $("meta").innerHTML=info[0]+" <span aria-hidden=\"true\">•</span> "+info[1];
   ticks++;
   if(ticks>=10){
    clearInterval(timer);
