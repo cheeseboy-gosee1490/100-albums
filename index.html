@@ -128,11 +128,10 @@ function render(){
 
 function renderCover(artist,album){
  const box=$("cover"), token=++artToken;
- box.classList.remove("show");
- box.style.backgroundImage="none";
+ box.classList.remove("show"); box.style.backgroundImage="none";
  if(!artist||!album)return;
 
- const cacheKey="album-art-cache-v1";
+ const cacheKey="album-art-cache-v3";
  let cache={};
  try{cache=JSON.parse(localStorage.getItem(cacheKey)||"{}")}catch(e){}
  const key=artist+" — "+album;
@@ -146,6 +145,7 @@ function renderCover(artist,album){
     box.classList.add("show");
    }
   };
+  img.onerror=()=>{};
   img.src=url;
  }
 
@@ -154,7 +154,7 @@ function renderCover(artist,album){
  const query=encodeURIComponent(artist+" "+album);
  const api="https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch="+query+"&gsrnamespace=0&gsrlimit=5&prop=pageimages&piprop=thumbnail&pithumbsize=700&redirects=1&format=json&origin=*";
 
- fetch(api)
+ fetch(api,{cache:"no-store"})
   .then(r=>r.ok?r.json():null)
   .then(data=>{
    if(token!==artToken||!data)return;
@@ -174,8 +174,7 @@ function renderCover(artist,album){
    cache[key]=url;
    try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}
    show(url);
-  })
-  .catch(()=>{});
+  }).catch(()=>{});
 }
 function renderHistory(){
  const h=$("history");h.innerHTML="";
@@ -244,7 +243,11 @@ $("cancelComplete").addEventListener("click",()=>{$("complete").classList.remove
 $("favourite").addEventListener("click",()=>{isFavourite=!isFavourite;$("favourite").textContent=isFavourite?"♥ Favourite":"♡ Not yet"});
 $("reset").addEventListener("click",()=>{if(confirm("Reset all 100 albums, ratings, notes and history?")){state={remaining:albums.map((_,i)=>i),history:[],current:null};save();render()}});
 
-if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+if("serviceWorker" in navigator){
+ navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).then(()=>{
+  if("caches" in window)return caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k))));
+ }).catch(()=>{});
+}
 render();
 </script>
 </body>
