@@ -104,6 +104,12 @@ let selectedRating=0, isFavourite=false, artToken=0;
 function save(){localStorage.setItem(key,JSON.stringify(state))}
 function today(){return new Date().toISOString().slice(0,10)}
 
+function clearArtwork(){
+ const box=$("cover");
+ artToken++;
+ box.classList.remove("show","loading");
+ box.style.backgroundImage="none";
+}
 function render(){
  const completed=state.history.filter(x=>x.result==="LISTENED");
  $("counter").innerHTML=state.remaining.length+"<br>remaining";
@@ -314,6 +320,7 @@ if("serviceWorker" in navigator){
   if("caches" in window)return caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k))));
  }).catch(()=>{});
 }
+clearArtwork();
 render();
 </script>
 </body>
