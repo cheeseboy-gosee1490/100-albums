@@ -72,14 +72,14 @@ section{margin-top:28px}.section-title{font-size:11px;text-transform:uppercase;l
 <body>
 <script>document.body.childNodes.forEach(function(n){if(n.nodeType===3&&/^\\n+$/.test(n.nodeValue.trim()))n.remove()});</script>
 <main id="app">
-<header><div><div class="eyebrow">Daily listening project</div><h1>100 Albums</h1></div><div class="counter" id="counter">100<br>remaining</div></header>
+<header><div><div class="eyebrow">100-album listening project</div><h1>100 Albums</h1></div><div class="counter" id="counter">100<br>remaining</div></header>
 
 <div class="card" id="recordCard" aria-live="polite">
 <div class="cover" id="cover" aria-hidden="true"></div>
 <div class="card-copy">
 <div class="status" id="status">Ready to spin</div>
 <div class="artist" id="artist">Pick your first record.</div>
-<div class="album" id="album">One album a day.</div>
+<div class="album" id="album">Pick an album from the list.</div>
 <div class="meta" id="meta">No repeats. Your progress is saved on this device.</div>
 </div>
 </div>
@@ -154,7 +154,7 @@ function render(){
  if(!hasCurrent)clearArtwork();
  const [a,b]=hasCurrent?albums[state.current]:["Pick your first record.","One album a day."];
  $("artist").textContent=a;$("album").textContent=b;
- $("status").textContent=hasCurrent?"Today's record":"Ready to spin";
+ $("status").textContent=hasCurrent?"Selected album":"Ready to spin";
  $("meta").textContent=hasCurrent?"A random pick from your remaining "+state.remaining.length+" albums.":"No repeats. Your progress is saved on this device.";
  const q=encodeURIComponent(a+" "+b);
  $("spotify").href="https://open.spotify.com/search/"+q;
@@ -298,7 +298,7 @@ function spin(){
   const [ta,tb]=albums[i];
   $("artist").textContent=ta;
   $("album").textContent=tb;
-  $("status").textContent="Today's record";
+  $("status").textContent="Selected album";
   $("meta").textContent="A random pick from your remaining "+state.remaining.length+" albums.";
   ticks++;
   if(ticks>=10){
